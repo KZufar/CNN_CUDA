@@ -11,8 +11,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{6E088F6D-0174-4A74-BCAE-94B346D2A4F2}</ProjectGuid>
-    <RootNamespace>MyTest</RootNamespace>
+    <ProjectGuid>{7962609E-EE3C-40E4-9DA8-E3A4E6102886}</ProjectGuid>
+    <RootNamespace>MPL_CUDA</RootNamespace>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
@@ -55,7 +55,6 @@
     </Link>
     <CudaCompile>
       <TargetMachinePlatform>64</TargetMachinePlatform>
-      <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -78,17 +77,11 @@
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <CudaCompile Include="cnn.cu" />
-    <CudaCompile Include="conv_layer.cu" />
-    <CudaCompile Include="main.cu" />
-    <CudaCompile Include="MLP_Cuda.cu" />
-    <CudaCompile Include="MyCNN.cu" />
-    <CudaCompile Include="MyCNNCpu.cu" />
-    <CudaCompile Include="Test1.cu" />
-    <CudaCompile Include="testCNN.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="mnist.h" />
+    <CudaCompile Include="fp_gpu.cuh" />
+    <CudaCompile Include="global_gpu.cu" />
+    <CudaCompile Include="global_gpu.cuh" />
+    <CudaCompile Include="MPL.cu" />
+    <CudaCompile Include="Test.cu" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

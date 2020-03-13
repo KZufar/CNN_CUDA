@@ -417,7 +417,7 @@
 //	_check_answer_get_error << <1, 1 >> > ();
 //	cudaDeviceSynchronize();
 //}
-//#include "bp_gpu.cuh"
+////#include "bp_gpu.cuh"
 //
 //__global__ void _update_fc2_b()
 //{

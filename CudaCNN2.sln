@@ -25,6 +25,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaCnnOpt2", "CudaCnnOpt2\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CudaCnnOptFinal", "CudaCnnOptFinal\CudaCnnOptFinal.vcxproj", "{EA9995BC-23D5-4B87-ADEF-9164302E012E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MPL_CUDA", "MPL_CUDA\MPL_CUDA.vcxproj", "{7962609E-EE3C-40E4-9DA8-E3A4E6102886}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -75,6 +77,10 @@ Global
 		{EA9995BC-23D5-4B87-ADEF-9164302E012E}.Debug|x64.Build.0 = Debug|x64
 		{EA9995BC-23D5-4B87-ADEF-9164302E012E}.Release|x64.ActiveCfg = Release|x64
 		{EA9995BC-23D5-4B87-ADEF-9164302E012E}.Release|x64.Build.0 = Release|x64
+		{7962609E-EE3C-40E4-9DA8-E3A4E6102886}.Debug|x64.ActiveCfg = Debug|x64
+		{7962609E-EE3C-40E4-9DA8-E3A4E6102886}.Debug|x64.Build.0 = Debug|x64
+		{7962609E-EE3C-40E4-9DA8-E3A4E6102886}.Release|x64.ActiveCfg = Release|x64
+		{7962609E-EE3C-40E4-9DA8-E3A4E6102886}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
