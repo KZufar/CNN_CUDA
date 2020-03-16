@@ -516,35 +516,45 @@ __global__ void _calcDelta() {
 	}
 
 	if (i < FC2_SIZE) {
-		for (int k = 0;k < BATCH_SIZE;k++) {
-			_fc2_db[i] += _fc2_del[k][i];
+		if (ind == 0) {
+			for (int k = 0;k < BATCH_SIZE;k++) {
+				_fc2_db[i] += _fc2_del[k][i];
+			}
 		}
 		/*_fc2_b[i] -= _fc2_db[i] / BATCH_SIZE;
 		_fc2_db[i] = 0;*/
 		for (int f = 0;f < FC1_SIZE;f++) {
 			_fc2_del_w[ind][i][f] = _fc2_del[ind][i] * _fc1_a[ind][f];
-			for (int m = 0;m < BATCH_SIZE;m++) {
-				_fc2_dw[i][f] += _fc2_del_w[m][i][f];
+			__syncthreads();
+			if (ind == 0) {
+				for (int m = 0;m < BATCH_SIZE;m++) {
+					_fc2_dw[i][f] += _fc2_del_w[m][i][f];
+				}
 			}
 			/*_fc2_w[i][f] -= _fc2_dw[i][f] / BATCH_SIZE;
 			_fc2_dw[i][f] = 0;*/
 		}
 	}
-
-
-	for (int k = 0;k < BATCH_SIZE;k++) {
-		_fc1_db[i] += _fc1_del[k][i];
-	}
-	/*_fc1_b[i] -= _fc1_db[i] / BATCH_SIZE;
-	_fc1_db[i] = 0;*/
-	for (int k = 0;k < ROW;k++) {
-		for (int l = 0;l < COL;l++) {
-			_fc1_del_w[ind][i][k][l] = _fc1_del[ind][i] * _input[ind][k][l];
-			for (int m = 0;m < BATCH_SIZE;m++) {
-				_fc1_dw[i][k][l] += _fc1_del_w[m][i][k][l];
+	if (i < FC1_SIZE) {
+		if (ind == 0) {
+			for (int k = 0;k < BATCH_SIZE;k++) {
+				_fc1_db[i] += _fc1_del[k][i];
 			}
-			/*_fc1_w[i][k][l] -= _fc1_dw[i][k][l] / BATCH_SIZE;
-			_fc1_dw[i][k][l] = 0;*/
+		}
+		/*_fc1_b[i] -= _fc1_db[i] / BATCH_SIZE;
+		_fc1_db[i] = 0;*/
+		for (int k = 0;k < ROW;k++) {
+			for (int l = 0;l < COL;l++) {
+				_fc1_del_w[ind][i][k][l] = _fc1_del[ind][i] * _input[ind][k][l];
+				__syncthreads();
+				if (ind == 0) {
+					for (int m = 0;m < BATCH_SIZE;m++) {
+						_fc1_dw[i][k][l] += _fc1_del_w[m][i][k][l];
+					}
+				}
+				/*_fc1_w[i][k][l] -= _fc1_dw[i][k][l] / BATCH_SIZE;
+				_fc1_dw[i][k][l] = 0;*/
+			}
 		}
 	}
 	/*__syncthreads();
@@ -985,10 +995,10 @@ int main() {
 	set_answer(0, train_label);
 	check_answer(correct_cnt);
 	get_error(avg_error);
-	update_fc2_w();
 	update_fc2_b();
-	update_fc1_w(0);
+	update_fc2_w();
 	update_fc1_b();
+	update_fc1_w(0);
 	/*for (int i = 0;i < FC2_SIZE;i++) {
 		cout << fc2_delta[i] << " ";
 	}
@@ -1004,10 +1014,10 @@ int main() {
 	set_answer(1, train_label);
 	check_answer(correct_cnt);
 	get_error(avg_error);
-	update_fc2_w();
 	update_fc2_b();
-	update_fc1_w(1);
+	update_fc2_w();
 	update_fc1_b();
+	update_fc1_w(1);
 	cout << "fc2_db" << endl;
 	for (int i = 0;i < FC2_SIZE;i++) {
 		cout << fc2_db[i] << " ";
@@ -1021,9 +1031,9 @@ int main() {
 		cout << endl;
 	}
 	cout << endl;
-	cout << "fc2_db" << endl;
-	for (int i = 0;i < FC2_SIZE;i++) {
-		cout << fc2_db[i] << " ";
+	cout << "fc1_db" << endl;
+	for (int i = 0;i < FC1_SIZE;i++) {
+		cout << fc1_db[i] << " ";
 	}
 	cout << endl;
 	cout << "fc1_dw" << endl;
@@ -1043,21 +1053,44 @@ int main() {
 	_set_answer_train << < BATCH_SIZE, FC2_SIZE >> > (0);
 	_check_answer_get_error <<<1, BATCH_SIZE >>> ();
 	_calcDelta << <BATCH_SIZE, FC2_SIZE>> > ();
-
 	//float testOut[BATCH_SIZE][FC2_SIZE];
-	
-
 	//_conv_pool << <1, grid2 >> > ();
 	//cudaMemcpyFromSymbol(&conv_z, _pool, CONV_W_NUM * CONV_SIZE * CONV_SIZE * sizeof(float));
 	//cudaMemcpyFromSymbol(&conv_z, _pool, 8 * sizeof(float));
 	//cudaMemcpyFromSymbol(&testOut, _fc2_del, BATCH_SIZE*FC2_SIZE * sizeof(float));
-	float testOut[FC2_SIZE][FC1_SIZE];
-	cudaMemcpyFromSymbol(&testOut, _fc2_dw, FC2_SIZE*FC1_SIZE * sizeof(float));
+	float testOut[FC2_SIZE];
+	cudaMemcpyFromSymbol(&testOut, _fc2_db, FC2_SIZE* sizeof(float));
 	cout << "First Image" << endl;
+	cout << "fc2_db" << endl;
+	for (int i = 0;i < FC2_SIZE;i++) {
+			cout << testOut[i] << " ";
+	}
+	cout << endl;
+	float testOut1[FC2_SIZE][FC1_SIZE];
+	cudaMemcpyFromSymbol(&testOut1, _fc2_dw, FC2_SIZE*FC1_SIZE * sizeof(float));
 	cout << "fc2_dw" << endl;
 	for (int i = 0;i < FC2_SIZE;i++) {
 		for (int j = 0;j < FC1_SIZE;j++) {
-			cout << testOut[i][i] << " ";
+			cout << testOut1[i][j] << " ";
+		}
+		cout << endl;
+	}
+	float testOut2[FC1_SIZE];
+	cudaMemcpyFromSymbol(&testOut2, _fc1_db, FC1_SIZE * sizeof(float));
+	cout << "fc1_db" << endl;
+	for (int i = 0;i < FC1_SIZE;i++) {
+		cout << testOut2[i] << " ";
+	}
+	cout << endl;
+	float testOut3[FC1_SIZE][ROW][COL];
+	cudaMemcpyFromSymbol(&testOut3, _fc1_dw, FC1_SIZE*ROW*COL* sizeof(float));
+	cout << "fc1_dw" << endl;
+	for (int r = 0;r < FC1_SIZE;r++) {
+		for (int i = 0;i < ROW;i++) {
+			for (int j = 0;j < COL;j++) {
+				cout << testOut3[r][i][j] << " ";
+			}
+			cout << endl;
 		}
 		cout << endl;
 	}

@@ -22,13 +22,10 @@
 //
 //__global__ void test() {
 //	_correct_cnt += _correct_cnt + 1;
-//	_correct_cnt += _correct_cnt + 1;
-//	_correct_cnt += _correct_cnt + 1;
-//	_correct_cnt += _correct_cnt + 1;
-//	_correct_cnt += _correct_cnt + 1;
+//	_correct_cnt += _correct_cnt - 1;
 //}
 //int main() {
-//	test << <1, 1 >> > ();
+//	test << <dim3(100000,1000,1000), 10 >> > ();
 //	int value = 0;
 //	cudaMemcpyFromSymbol(&value, _correct_cnt, sizeof(int));
 //	cout << value << endl;
