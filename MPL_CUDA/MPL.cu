@@ -16,62 +16,62 @@ using namespace std;
 #include <cmath>
 #include <math.h>
 //#include "global_gpu.cuh"
-#define TRAIN_NUM 2
+#define TRAIN_NUM 60000
 #define TEST_NUM 10000
-#define ROW 4
-#define COL 4
-#define FC1_SIZE 2
-#define FC2_SIZE 3
-#define BATCH_SIZE 2
+#define ROW 28
+#define COL 28
+#define FC1_SIZE 15
+#define FC2_SIZE 10
+#define BATCH_SIZE 10
 float fc1_b[FC1_SIZE];
-//float fc1_w[FC1_SIZE][ROW][COL];
+float fc1_w[FC1_SIZE][ROW][COL];
 float fc2_b[FC2_SIZE];
-//float fc2_w[FC2_SIZE][FC1_SIZE];
+float fc2_w[FC2_SIZE][FC1_SIZE];
 
-float train_image[2][ROW][COL] = {
-	{{ 3, 1, 2, 4 },
-	{ 2, 4, 3, 1 },
-	{ 1, 5, 2, 3 },
-	{ 2, 3, 4, 1 }},
-
-	{{ 5, 4, 5, 1 },
-	{ 3, 2, 2, 3 },
-	{ 2, 4, 7, 2 },
-	{ 7, 1, 2, 5 }} };
-
-float fc1_w[FC1_SIZE][ROW][COL] = { {
-{1, 2, 3, 4},
-{4, 3, 1, 1},
-{1, 2, 4, 3},
-{1, 3, 2, 1}},
-
-{{4, 2, 5, 7},
-{2, 3, 1, 3},
-{1, 2, 3, 1},
-{4, 2, 5, 7}} };
-
-
-float fc2_w[FC2_SIZE][FC1_SIZE] = {
-{1, 6},
-{4, 3},
-{2, 5} };
+//float train_image[2][ROW][COL] = {
+//	{{ 3, 1, 2, 4 },
+//	{ 2, 4, 3, 1 },
+//	{ 1, 5, 2, 3 },
+//	{ 2, 3, 4, 1 }},
+//
+//	{{ 5, 4, 5, 1 },
+//	{ 3, 2, 2, 3 },
+//	{ 2, 4, 7, 2 },
+//	{ 7, 1, 2, 5 }} };
+//
+//float fc1_w[FC1_SIZE][ROW][COL] = { {
+//{1, 2, 3, 4},
+//{4, 3, 1, 1},
+//{1, 2, 4, 3},
+//{1, 3, 2, 1}},
+//
+//{{4, 2, 5, 7},
+//{2, 3, 1, 3},
+//{1, 2, 3, 1},
+//{4, 2, 5, 7}} };
+//
+//
+//float fc2_w[FC2_SIZE][FC1_SIZE] = {
+//{1, 6},
+//{4, 3},
+//{2, 5} };
 
 __constant__ float _alpha=0.2;
-__constant__ int _minibatch=1;
+__constant__ int _minibatch=10;
 __constant__ int _epochs;
 
 __device__ int _correct_cnt;
 __device__ float _avg_error;
 
-int correct_cnt = 3;
-float avg_error = 2;
+int correct_cnt = 0;
+float avg_error = 0;
 float max_acc;
 
 float alpha = 0.2;
 int epochs = 5;
 int minibatch = 1;
 
-//float train_image[TRAIN_NUM][ROW][COL];
+float train_image[TRAIN_NUM][ROW][COL];
 int train_label[TRAIN_NUM];
 float test_image[TEST_NUM][ROW][COL];
 int test_label[TEST_NUM];
@@ -118,8 +118,6 @@ __device__ float _fc2_dw[FC2_SIZE][FC1_SIZE];
 __device__ float _C[BATCH_SIZE][FC2_SIZE];
 __device__ float _fc2_delta[BATCH_SIZE][FC2_SIZE];
 __device__ float _fc1_delta[BATCH_SIZE][FC1_SIZE];
-
-__device__ int tmp;
 
 int swap_endian(int val)
 {
@@ -233,49 +231,14 @@ void load_data()
 }
 __device__ float _sigmoid(float x)
 {
-	//return (1 / (1 + exp(-1 * x)));
-	return x;
+	return (1 / (1 + exp(-1 * x)));
+	//return x;
 }
 
-//__global__ void _set_input_train(int idx)
-//{
-//	int ix = threadIdx.x + blockDim.x * blockIdx.x;
-//	int iy = threadIdx.y + blockDim.y * blockIdx.y;
-//	if (ix < ROW && iy < COL)
-//	{
-//		_input[ix][iy] = _train_image[idx][ix][iy];
-//	}
-//}
-//
-//__global__ void _set_input_test(int idx)
-//{
-//	int ix = threadIdx.x + blockDim.x * blockIdx.x;
-//	int iy = threadIdx.y + blockDim.y * blockIdx.y;
-//	if (ix < ROW && iy < COL)
-//	{
-//		_input[ix][iy] = _test_image[idx][ix][iy];
-//	}
-//}
-//
-//void set_input_gpu_train(int idx)
-//{
-//	dim3 block(32, 32);
-//	dim3 grid((ROW - 1) / block.x + 1, (COL - 1) / block.y + 1);
-//	_set_input_train << <block, grid >> > (idx);
-//	cudaDeviceSynchronize();
-//}
-//
-//void set_input_gpu_test(int idx)
-//{
-//	dim3 block(32, 32);
-//	dim3 grid((ROW - 1) / block.x + 1, (COL - 1) / block.y + 1);
-//	_set_input_test << <block, grid >> > (idx);
-//	cudaDeviceSynchronize();
-//}
 float sigmoid(float x)
 {
-	//return (1 / (1 + exp(-1 * x)));
-	return x;
+	return (1 / (1 + exp(-1 * x)));
+	//return x;
 }
 
 void set_input(int idx, float image[TRAIN_NUM][ROW][COL])
@@ -284,23 +247,17 @@ void set_input(int idx, float image[TRAIN_NUM][ROW][COL])
 		for (int j = 0;j < COL;j++)
 			input[i][j] = image[idx][i][j];
 }
-
-float data1[FC1_SIZE][ROW][COL];
-__device__ float _data1[FC1_SIZE][ROW][COL];
-
 void input_fc1()
 {
 	for (int ib = 0;ib < FC1_SIZE;ib++) {
 		fc1_z[ib] = 0;
 		for (int l = 0;l < ROW;l++)
 			for (int m = 0;m < COL;m++) {
-				data1[ib][l][m]= input[l][m] * fc1_w[ib][l][m];
 				fc1_z[ib] += input[l][m] * fc1_w[ib][l][m];
 			}
 		fc1_z[ib] += fc1_b[ib];
 		fc1_a[ib] = sigmoid(fc1_z[ib]);
 	}
-	int f;
 }
 void fc1_fc2()
 {
@@ -381,6 +338,38 @@ void update_fc1_w(int m)
 			for (int k = 0;k < COL;k++)
 				fc1_dw[i][j][k]+= fc1_delta[i] * input[j][k];
 }
+
+void assign_grads()
+{
+	for (int i = 0;i < FC2_SIZE;i++)
+	{
+		fc2_b[i] -= (fc2_db[i] / BATCH_SIZE);
+		fc2_db[i] = 0;
+	}
+
+	for (int i = 0;i < FC2_SIZE;i++)
+		for (int j = 0;j < FC1_SIZE;j++)
+		{
+			fc2_w[i][j] -= (fc2_dw[i][j] / BATCH_SIZE);
+			fc2_dw[i][j] = 0;
+		}
+
+	for (int i = 0;i < FC1_SIZE;i++)
+	{
+		fc1_b[i] -= (fc1_db[i] / BATCH_SIZE);
+		fc1_db[i] = 0;
+	}
+
+	for (int i = 0;i < FC1_SIZE;i++)
+		for (int j = 0;j < ROW;j++)
+			for (int k = 0;k < COL;k++)
+				{
+					fc1_w[i][j][k]-= (fc1_dw[i][j][k]/ BATCH_SIZE);
+					fc1_dw[i][j][k]= 0;
+				}
+}
+
+
 __global__ void _input_fc1(int j)
 {
 	//int ib = blockIdx.x;
@@ -390,27 +379,54 @@ __global__ void _input_fc1(int j)
 	//int ind = gridDim.x * blockIdx.y + blockIdx.x;
 	int ind = blockIdx.x;
 	_input[ind][iy][ix] = _train_image[BATCH_SIZE * j + ind][iy][ix];
-	__shared__ float data[ROW * COL];
+	__shared__ float data[1024];
+
 	int tid = blockDim.x * threadIdx.y + threadIdx.x;
-	data[tid] = _input[ind][iy][ix] * _fc1_w[ib][iy][ix];
-	_data1[ind][iy][ix] = _input[ind][iy][ix] * _fc1_w[ib][iy][ix];
-	_data1[ind][iy][ix] = data[tid];
-	/*float b = data[648];*/
-	//data[tid] = 1;
+	/*if(ix==0&&iy==0&&ib==0)
+		for (int ib = 0;ib < FC1_SIZE;ib++) {
+			_fc1_z[ind][ib] = 0;
+			for (int l = 0;l < ROW;l++)
+				for (int m = 0;m < COL;m++) {
+					_fc1_z[ind][ib] += _input[ind][l][m] * _fc1_w[ib][l][m];
+				}
+			_fc1_z[ind][ib] += _fc1_b[ib];
+			_fc1_a[ind][ib] = _sigmoid(_fc1_z[ind][ib]);
+		}*/
+	data[tid] = 0;
+	if (tid < ROW* COL)
+		data[tid] = _input[ind][iy][ix] * _fc1_w[ib][iy][ix];
 	__syncthreads();
-	for (int s = ROW * COL / 2; s > 0; s >>= 1) {
+	for (int s = 1024 / 2; s > 0; s >>= 1) {
 		if (tid < s)
 			data[tid] += data[tid + s];
 		__syncthreads();
 	}
-	/*int m = ROW*COL / 2;
-
-	while (m != 0) {
-		if (tid < m)
-			data[tid] += data[tid + m];
+	if (tid == 0) {
+		_fc1_z[ind][ib] = data[0];
+		data[0] += _fc1_b[ib];
+		_fc1_a[ind][ib] = _sigmoid(data[0]);
+	}
+}
+__global__ void _input_fc1_test(int j)
+{
+	//int ib = blockIdx.x;
+	int ib = blockIdx.y;
+	int ix = threadIdx.x;
+	int iy = threadIdx.y;
+	//int ind = gridDim.x * blockIdx.y + blockIdx.x;
+	int ind = blockIdx.x;
+	_input[ind][iy][ix] = _test_image[BATCH_SIZE * j + ind][iy][ix];
+	__shared__ float data[1024];
+	int tid = blockDim.x * threadIdx.y + threadIdx.x;
+	data[tid] = 0;
+	if(tid<ROW*COL)
+		data[tid] = _input[ind][iy][ix] * _fc1_w[ib][iy][ix];
+	__syncthreads();
+	for (int s = 1024 / 2; s > 0; s >>= 1) {
+		if (tid < s)
+			data[tid] += data[tid + s];
 		__syncthreads();
-		m /= 2;
-	}*/
+	}
 	if (tid == 0) {
 		_fc1_z[ind][ib] = data[0];
 		data[0] += _fc1_b[ib];
@@ -423,11 +439,13 @@ __global__ void _fc1_fc2()
 	int ind = blockIdx.x;
 	int ib = blockIdx.y;
 	int ix = threadIdx.x;
-	__shared__ float data[FC1_SIZE];
+	__shared__ float data[1024];
 	int tid = threadIdx.x;
-	data[tid] = _fc1_a[ind][ix]* _fc2_w[ib][ix];
+	data[tid] = 0;
+	if(tid<FC1_SIZE)
+		data[tid] = _fc1_a[ind][ix]* _fc2_w[ib][ix];
 	__syncthreads();
-	for (int s = FC1_SIZE/ 2; s > 0; s >>= 1) {
+	for (int s = 1024/ 2; s > 0; s >>= 1) {
 		if (tid < s)
 			data[tid] += data[tid + s];
 		__syncthreads();
@@ -449,8 +467,7 @@ __global__ void _set_answer_train(int idx)
 
 __global__ void _set_answer_test(int idx)
 	{
-		int ind = gridDim.x * blockIdx.y + blockIdx.x;
-
+	int ind = gridDim.x * blockIdx.y + blockIdx.x;
 	int i = threadIdx.x;
 	_output[ind][i] = _fc2_a[ind][i];
 	_answer[ind][i] = (_test_label[ind * idx + ind] == i) ? 1 : 0;
@@ -471,14 +488,17 @@ __global__ void _check_answer_get_error()
 			max_pos = i;
 		}
 	}
-	__shared__ int data[BATCH_SIZE];
-	if (_answer[ind][max_pos])
-		data[ind] = 1;
-	else
-		data[ind] = 0;
+	__shared__ int data[32];
+	data[ind] = 0;
+	if (ind < BATCH_SIZE) {
+		if (_answer[ind][max_pos])
+			data[ind] = 1;
+		else
+			data[ind] = 0;
+	}
 	__syncthreads();
 
-	for (int s = BATCH_SIZE / 2; s > 0; s >>= 1) {
+	for (int s = 32 / 2; s > 0; s >>= 1) {
 		if (ind < s)
 			data[ind] += data[ind + s];
 		__syncthreads();
@@ -502,7 +522,7 @@ __device__ float _fc2_del_w[BATCH_SIZE][FC2_SIZE][FC1_SIZE];
 __device__ float _fc1_del[BATCH_SIZE][FC1_SIZE];
 __device__ float _fc1_del_w[BATCH_SIZE][FC1_SIZE][ROW][COL];
 
-__global__ void _calcDelta() {
+__global__ void _calcDeltaAndUpdateWeights() {
 	int ind = gridDim.x * blockIdx.y + blockIdx.x;
 	int i = threadIdx.x;
 	
@@ -514,15 +534,14 @@ __global__ void _calcDelta() {
 			error += _fc2_del[ind][j] * _fc2_w[j][i];
 		_fc1_del[ind][i] = error * (_fc1_a[ind][i] * (1.0 - _fc1_a[ind][i]));
 	}
-
 	if (i < FC2_SIZE) {
 		if (ind == 0) {
 			for (int k = 0;k < BATCH_SIZE;k++) {
 				_fc2_db[i] += _fc2_del[k][i];
 			}
+			_fc2_b[i] -= _fc2_db[i] / BATCH_SIZE;
+			_fc2_db[i] = 0;
 		}
-		/*_fc2_b[i] -= _fc2_db[i] / BATCH_SIZE;
-		_fc2_db[i] = 0;*/
 		for (int f = 0;f < FC1_SIZE;f++) {
 			_fc2_del_w[ind][i][f] = _fc2_del[ind][i] * _fc1_a[ind][f];
 			__syncthreads();
@@ -530,9 +549,9 @@ __global__ void _calcDelta() {
 				for (int m = 0;m < BATCH_SIZE;m++) {
 					_fc2_dw[i][f] += _fc2_del_w[m][i][f];
 				}
+				_fc2_w[i][f] -= _fc2_dw[i][f] / BATCH_SIZE;
+				_fc2_dw[i][f] = 0;
 			}
-			/*_fc2_w[i][f] -= _fc2_dw[i][f] / BATCH_SIZE;
-			_fc2_dw[i][f] = 0;*/
 		}
 	}
 	if (i < FC1_SIZE) {
@@ -540,9 +559,10 @@ __global__ void _calcDelta() {
 			for (int k = 0;k < BATCH_SIZE;k++) {
 				_fc1_db[i] += _fc1_del[k][i];
 			}
+			_fc1_b[i] -= _fc1_db[i] / BATCH_SIZE;
+			_fc1_db[i] = 0;
 		}
-		/*_fc1_b[i] -= _fc1_db[i] / BATCH_SIZE;
-		_fc1_db[i] = 0;*/
+		
 		for (int k = 0;k < ROW;k++) {
 			for (int l = 0;l < COL;l++) {
 				_fc1_del_w[ind][i][k][l] = _fc1_del[ind][i] * _input[ind][k][l];
@@ -551,201 +571,239 @@ __global__ void _calcDelta() {
 					for (int m = 0;m < BATCH_SIZE;m++) {
 						_fc1_dw[i][k][l] += _fc1_del_w[m][i][k][l];
 					}
+					_fc1_w[i][k][l] -= _fc1_dw[i][k][l] / BATCH_SIZE;
+					_fc1_dw[i][k][l] = 0;
 				}
-				/*_fc1_w[i][k][l] -= _fc1_dw[i][k][l] / BATCH_SIZE;
-				_fc1_dw[i][k][l] = 0;*/
+				
 			}
 		}
 	}
+}
+//-----------------------------------------------------------------------------GPU ORIGINAL__________________________________________________________________
+
+__global__ void _set_input_train(int idx)
+{
+    int ix=threadIdx.x+blockDim.x*blockIdx.x;
+    int iy=threadIdx.y+blockDim.y*blockIdx.y;
+    if(ix<ROW&&iy<COL)
+    {
+        _input[0][ix][iy]=_train_image[idx][ix][iy];
+    }
+}
+
+__global__ void _set_input_test(int idx)
+{
+    int ix=threadIdx.x+blockDim.x*blockIdx.x;
+    int iy=threadIdx.y+blockDim.y*blockIdx.y;
+    if(ix<ROW&&iy<COL)
+    {
+        _input[0][ix][iy]=_test_image[idx][ix][iy];
+    }
+}
+
+void set_input_gpu_train(int idx)
+{
+    dim3 block(32,32);
+    dim3 grid((ROW-1)/block.x+1,(COL-1)/block.y+1);
+    _set_input_train<<<block,grid>>>(idx);
+    cudaDeviceSynchronize();
+}
+
+void set_input_gpu_test(int idx)
+{
+    dim3 block(32,32);
+    dim3 grid((ROW-1)/block.x+1,(COL-1)/block.y+1);
+    _set_input_test<<<block,grid>>>(idx);
+    cudaDeviceSynchronize();
+}
+
+__global__ void _1input_fc1()
+{
+	int ib = blockIdx.x;
+	int ix = threadIdx.x;
+	int iy = threadIdx.y;
+	_fc1_z[0][ib] = 0;
+	for (int l = 0;l < ROW;l++)
+		for (int m = 0;m < COL;m++)
+			_fc1_z[0][ib] += _input[0][l][m] * _fc1_w[ib][l][m];
+	_fc1_z[0][ib] += _fc1_b[ib];
+	_fc1_a[0][ib] = _sigmoid(_fc1_z[0][ib]);
+/*	__shared__ float data[ROW*COL];
+	int tid = threadIdx.x+threadIdx.y;
+	data[tid] = _input[ix][iy] * _fc1_w[ib][ix][iy];*/ 
 	/*__syncthreads();
-	for (int s = FC2_SIZE / 2; s > 0; s >>= 1) {
-		if (j < s)
-			data_bias[j] += data_bias[j + s];
+	for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+		if (tid < s)
+			data[tid] += data[tid + s];
 		__syncthreads();
-	}*/
-	/*for (int k = 0;k < BATCH_SIZE;k++) {
-		_fc2_db[i] += _fc2_delta[k][i];
-		for (int j = 0;j < FC1_SIZE;j++) {
-			_fc2_dw[i][j] += _fc2_delta[k][i] * _fc1_a[ind][j];
-		}
-	}*/
-}
-__global__ void _update_weights_HO() {
-	/*int ind = gridDim.x * blockIdx.y + blockIdx.x;
-	int i = blockIdx.x;
-	int j = threadIdx.x;
-	__shared__ float data_bias[FC2_SIZE];
-	__shared__ float data_weight[FC1_SIZE];
-	if (!i&&j < FC2_SIZE) {
-		data_bias[j] = _fc2_delta[j][i];
-		__syncthreads();
-		for (int s = FC2_SIZE/ 2; s > 0; s >>= 1) {
-			if (j < s)
-				data_bias[j] += data_bias[j + s];
-			__syncthreads();
-		}
 	}
-	if (!i) {
-		data_weight[j] = _fc2_delta[j][i] * _fc1_a[i][j];
-		__syncthreads();
-		for (int s = FC1_SIZE / 2; s > 0; s >>= 1) {
-			if (j < s)
-				data_weight[j] += data_weight[j + s];
-			__syncthreads();
-		}
-		if (j == 0) {
-			_fc2_db[i] = data_bias[0];
-			_fc2_dw[i][j] = data_weight[0];
-		}
-	}
-	if (j == 0) {
-		_fc2_w[i][j] -= data_weight[0] / BATCH_SIZE;
-		_fc2_w[i][j] -= 0;
-		_fc2_b[i] -= data_weight[0] / BATCH_SIZE;
-		_fc2_b[i] -= 0;
+	if (tid == 0) {
+		_fc1_z[ib]= data[0];
+		data[0] += _fc1_b[ib];
+		_fc1_a[ib] = _sigmoid(data[0]);
 	}*/
 }
-__global__ void _update_weights_IH(int m) {
-	/*int i = blockIdx.x;
-	int j = threadIdx.x;
-	int h = threadIdx.y;
-	int ix = threadIdx.x * blockIdx.x + threadIdx.y;
-	__shared__ float data_bias[FC1_SIZE];
-	__shared__ float data_weight[ROW][COL];
-	if (!i && j < ROW&&h<COL) {
-		data_bias[j] = _fc1_delta[ix][i];
-		__syncthreads();
-		for (int s = FC1_SIZE / 2; s > 0; s >>= 1) {
-			if (j < s)
-				data_bias[j] += data_bias[j + s];
-			__syncthreads();
-		}
-	}
-	if (!i) {
-		data_weight[j][h] = _fc2_delta[j][i] * _train_image[BATCH_SIZE*m+m][i][j];
-		__syncthreads();
-		for (int s = FC1_SIZE / 2; s > 0; s >>= 1) {
-			if (j < s)
-				data_weight[j] += data_weight[j + s];
-			__syncthreads();
-		}
-		if (j == 0) {
-			_fc2_db[i] = data_bias[0];
-			_fc2_dw[i][j] = data_weight[0];
-		}
-	}
-	if (j == 0) {
-		_fc2_w[i][j] -= data_weight[0] / BATCH_SIZE;
-		_fc2_w[i][j] -= 0;
-		_fc2_b[i] -= data_weight[0] / BATCH_SIZE;
-		_fc2_b[i] -= 0;
-	}*/
+__global__ void _1fc1_fc2()
+{
+    int i=threadIdx.x+blockDim.x*blockIdx.x;
+    if(i<FC2_SIZE)
+    {
+        _fc2_z[0][i]=0;
+        for(int j=0;j<FC1_SIZE;j++)
+            _fc2_z[0][i]+=_fc1_a[0][j]*_fc2_w[i][j];
+        _fc2_z[0][i]+=_fc2_b[i];
+        _fc2_a[0][i]=_sigmoid(_fc2_z[0][i]);
+    }
 }
-//
-//__global__ void _update_fc2_b()
-//{
-//	int ind = gridDim.x * blockIdx.y + blockIdx.x;
-//	int i = threadIdx.x;
-//	_fc2_delta[ind][i] = _alpha * _C[ind][i] * (_fc2_a[ind][i] * (1.0 - _fc2_a[ind][i]));
-//	_fc2_db[i] += _fc2_delta[ind][i];
-//}
-//
-//__global__ void _update_fc2_w()
-//{
-//	int ind = gridDim.x * blockIdx.y + blockIdx.x;
-//	int i = threadIdx.x + blockDim.x * blockIdx.x;
-//	int j = threadIdx.y + blockDim.y * blockIdx.y;
-//	if (i < FC2_SIZE && j < FC1_SIZE)
-//		_fc2_dw[ind][i][j] += _fc2_delta[ind][i] * _fc1_a[ind][j];
-//}
-//
-//__global__ void _update_fc1_b()
-//{
-//	int i = threadIdx.x + blockDim.x * blockIdx.x;
-//	if (i < FC1_SIZE)
-//	{
-//		float error = 0;
-//		for (int j = 0;j < FC2_SIZE;j++)
-//			error += _fc2_delta[j] * _fc2_w[j][i];
-//		_fc1_delta[i] = error * (_fc1_a[i] * (1.0 - _fc1_a[i]));
-//		_fc1_db[i] += _fc1_delta[i];
-//	}
-//}
-//
-//__global__ void _update_fc1_w()
-//{
-//	int i = blockIdx.x;
-//	int k = threadIdx.y + blockDim.y * blockIdx.y;
-//	int l = threadIdx.z + blockDim.z * blockIdx.z;
-//	//_fc1_del_w[ind][i] += _fc1_del[ind][i] * _input[ind][k][l];
-//
-//	_fc1_dw[i][k][l] += _fc1_delta[i] * _input[k][l];
-//}
-//
-//
-//__global__ void assign_fc2_b()
-//{
-//	int i = threadIdx.x + blockDim.x * blockIdx.x;
-//	if (i < FC2_SIZE)
-//	{
-//		_fc2_b[i] -= (_fc2_db[i] / _minibatch);
-//		_fc2_db[i] = 0;
-//	}
-//}
-//
-//__global__ void assign_fc2_w()
-//{
-//	int i = threadIdx.x + blockDim.x * blockIdx.x;
-//	int j = threadIdx.y + blockDim.y * blockIdx.y;
-//	if (i < FC2_SIZE && j < FC1_SIZE)
-//	{
-//		_fc2_w[i][j] -= (_fc2_dw[i][j] / _minibatch);
-//		_fc2_dw[i][j] = 0;
-//	}
-//}
-//
-//__global__ void assign_fc1_b()
-//{
-//	int i = threadIdx.x + blockDim.x * blockIdx.x;
-//	if (i < FC1_SIZE)
-//	{
-//		_fc1_b[i] -= (_fc1_db[i] / _minibatch);
-//		_fc1_db[i] = 0;
-//	}
-//}
-//
-//__global__ void assign_fc1_w()
-//{
-//	int i = threadIdx.x + blockDim.x * blockIdx.x;
-//	int k = threadIdx.y + blockDim.y * blockIdx.y;
-//	int l = threadIdx.z + blockDim.z * blockIdx.z;
-//	_fc1_w[blockIdx.x][k][l] -= (_fc1_dw[blockIdx.x][k][l] / _minibatch);
-//	_fc1_dw[blockIdx.x][k][l] = 0;
-//	
-//}
-//
-//
-//void assign_grads_gpu()
-//{
-//	dim3 block1(32);
-//	dim3 grid1((FC2_SIZE - 1) / block1.x + 1);
-//	assign_fc2_b << <block1, grid1 >> > ();
-//
-//	dim3 block2(32, 32);
-//	dim3 grid2((FC2_SIZE - 1) / block2.x + 1, (FC1_SIZE - 1) / block2.y + 1);
-//	assign_fc2_w << <block2, grid2 >> > ();
-//
-//	dim3 block3(32);
-//	dim3 grid3((FC1_SIZE - 1) / block3.x + 1);
-//	assign_fc1_b << <block3, grid3 >> > ();
-//
-//	dim3 block4(8, 8, 8);
-//	//dim3 grid4((FC1_SIZE - 1) / block4.x + 1, (POOL_SIZE - 1) / block4.y + 1, (POOL_SIZE - 1) / block4.z + 1);
-//	assign_fc1_w << <block4, dim3(1, 28, 28) >> > ();
-//
-//
-//	cudaDeviceSynchronize();
-//}
+__global__ void _1set_answer_train(int idx)
+{
+    int i=threadIdx.x+blockDim.x*blockIdx.x;
+    if(i<FC2_SIZE)
+    {
+        _output[0][i]=_fc2_a[0][i];
+        _answer[0][i]=(_train_label[idx]==i)?1:0;
+    }
+}
+
+__global__ void _1set_answer_test(int idx)
+{
+    int i=threadIdx.x+blockDim.x*blockIdx.x;
+    if(i<FC2_SIZE)
+    {
+        _output[0][i]=_fc2_a[0][i];
+        _answer[0][i]=(_test_label[idx]==i)?1:0;
+    }
+}
+
+__global__ void _1check_answer_get_error()
+{
+    float _max=_output[0][0];
+    int max_pos=0;
+    for(int i=0;i<FC2_SIZE;i++)
+    {
+        if(_max<_output[0][i])
+        {
+            _max=_output[0][i];
+            max_pos=i;
+        }
+    }
+    if(_answer[max_pos])
+        _correct_cnt++;
+    for(int i=0;i<FC2_SIZE;i++)
+    {
+        _C[0][i]=_output[0][i]-_answer[0][i];
+        _avg_error+=_C[0][i]*_C[0][i]*0.5;
+    }
+}
+
+
+__global__ void _1update_fc2_b()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	if (i < FC2_SIZE)
+	{
+		_fc2_delta[0][i] = _alpha * _C[0][i] * (_fc2_a[0][i] * (1.0 - _fc2_a[0][i]));
+		_fc2_db[i] += _fc2_delta[0][i];
+	}
+}
+
+__global__ void _1update_fc2_w()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	int j = threadIdx.y + blockDim.y * blockIdx.y;
+	if (i < FC2_SIZE && j < FC1_SIZE)
+		_fc2_dw[i][j] += _fc2_delta[0][i] * _fc1_a[0][j];
+}
+
+__global__ void _1update_fc1_b()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	if (i < FC1_SIZE)
+	{
+		float error = 0;
+		for (int j = 0;j < FC2_SIZE;j++)
+			error += _fc2_delta[0][j] * _fc2_w[j][i];
+		_fc1_delta[0][i] = error * (_fc1_a[0][i] * (1.0 - _fc1_a[0][i]));
+		_fc1_db[i] += _fc1_delta[0][i];
+	}
+}
+__global__ void _1update_fc1_w()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	int k = threadIdx.y + blockDim.y * blockIdx.y;
+	int l = threadIdx.z + blockDim.z * blockIdx.z;
+	if (i < FC1_SIZE && k < ROW && l < COL)
+		_fc1_dw[i][k][l] += _fc1_delta[0][i] * _input[0][k][l];
+}
+
+__global__ void _1assign_fc2_b()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	if (i < FC2_SIZE)
+	{
+		_fc2_b[i] -= (_fc2_db[i] / _minibatch);
+		_fc2_db[i] = 0;
+	}
+}
+
+__global__ void _1assign_fc2_w()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	int j = threadIdx.y + blockDim.y * blockIdx.y;
+	if (i < FC2_SIZE && j < FC1_SIZE)
+	{
+		_fc2_w[i][j] -= (_fc2_dw[i][j] / _minibatch);
+		_fc2_dw[i][j] = 0;
+	}
+}
+
+__global__ void _1assign_fc1_b()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	if (i < FC1_SIZE)
+	{
+		_fc1_b[i] -= (_fc1_db[i] / _minibatch);
+		_fc1_db[i] = 0;
+	}
+}
+
+__global__ void _1assign_fc1_w()
+{
+	int i = threadIdx.x + blockDim.x * blockIdx.x;
+	int k = threadIdx.y + blockDim.y * blockIdx.y;
+	int l = threadIdx.z + blockDim.z * blockIdx.z;
+	if (i < FC1_SIZE && k < ROW && l < COL)
+	{
+		_fc1_w[i][k][l] -= (_fc1_dw[i][k][l] / _minibatch);
+		_fc1_dw[i][k][l] = 0;
+	}
+}
+
+void assign_grads_gpu()
+{
+	dim3 block1(32);
+	dim3 grid1((FC2_SIZE - 1) / block1.x + 1);
+	_1assign_fc2_b << <block1, grid1 >> > ();
+
+	dim3 block2(32, 32);
+	dim3 grid2((FC2_SIZE - 1) / block2.x + 1, (FC1_SIZE - 1) / block2.y + 1);
+	_1assign_fc2_w << <block2, grid2 >> > ();
+
+	dim3 block3(32);
+	dim3 grid3((FC1_SIZE - 1) / block3.x + 1);
+	_1assign_fc1_b << <block3, grid3 >> > ();
+
+	dim3 block4(8, 8, 8);
+	dim3 grid4((FC1_SIZE - 1) / block4.x + 1, (ROW - 1) / block4.y + 1, (COL - 1) / block4.z + 1);
+	_1assign_fc1_w << <block4, grid4 >> > ();
+
+
+	cudaDeviceSynchronize();
+}
+
+
+//-----------------------------------------------------------------------------GPU ORIGINAL END__________________________________________________________________
+
 void init_data_gpu()
 {
 	cudaMemcpyToSymbol(_train_image, train_image, TRAIN_NUM * ROW * COL * sizeof(float));
@@ -784,40 +842,25 @@ void init_params()
 	for (int i = 0;i < FC1_SIZE;i++)
 	{
 		for (int j = 0;j < ROW;j++)
-			for (int k = 0;k < COL;k++)
+			for (int k = 0;k < COL;k++) {
 				fc1_w[i][j][k] = get_rand(ROW*COL);
+				//fc1_w[i][j][k] = rand() % 5 - 2;
+			}
 		fc1_b[i] = get_rand(ROW*COL);
+		//fc1_b[i] = rand() % 5 - 2;;
 	}
 
 	for (int i = 0;i < FC2_SIZE;i++)
 	{
-		for (int j = 0;j < FC1_SIZE;j++)
+		for (int j = 0;j < FC1_SIZE;j++) {
+			//rand() % 5 - 2;
 			fc2_w[i][j] = get_rand(FC1_SIZE);
+		}
 		fc2_b[i] = get_rand(FC1_SIZE);
+		//fc2_b[i] = rand() % 5 - 2;;
 	}
 }
 
-__global__  void _test() {
-	_correct_cnt = _correct_cnt + 10;
-	_avg_error = _avg_error + 16.35;
-	/*float _max = _output[0];
-	int max_pos = 0;
-	for (int i = 0;i < FC2_SIZE;i++)
-	{
-		if (_max < _output[i])
-		{
-			_max = _output[i];
-			max_pos = i;
-		}
-	}
-	if (_answer[max_pos])
-		_correct_cnt++;
-	for (int i = 0;i < FC2_SIZE;i++)
-	{
-		_C[i] = _output[i] - _answer[i];
-		_avg_error += _C[i] * _C[i] * 0.5;
-	}*/
-}
 float matrixMult(float a[ROW][COL], float b[FC1_SIZE][ROW][COL], int k) {
 	float c=0;
 	for (int i = 0;i < ROW;i++) {
@@ -828,287 +871,546 @@ float matrixMult(float a[ROW][COL], float b[FC1_SIZE][ROW][COL], int k) {
 	return c;
 }
 int main() {
-	//load_data();
-	//clock_t t = clock();
-	//cudaMemcpyToSymbol(_alpha, &alpha, sizeof(float));
-	//cudaMemcpyToSymbol(_minibatch, &minibatch, sizeof(int));
-	//cudaMemcpyToSymbol(_epochs, &epochs, sizeof(int));
-	//init_data_gpu();
-	//init_params();
-	//cudaMemcpyToSymbol(_fc1_b, fc1_b, FC1_SIZE* sizeof(float));
-	//cudaMemcpyToSymbol(_fc1_w, fc1_w, FC1_SIZE*COL*ROW* sizeof(float));
-	//cudaMemcpyToSymbol(_fc2_b, fc2_b, FC2_SIZE* sizeof(float));
-	//cudaMemcpyToSymbol(_fc2_w, fc2_w, FC1_SIZE * FC2_SIZE * sizeof(float));
-	////dim3 block_set_input(1, 1);
-	////dim3 grid_set_input((ROW - 1) / block_set_input.x + 1, (COL - 1) / block_set_input.y + 1);
-	//dim3 grid_set_input(28,28);
-	//dim3 block_input(8, 8, 8);
-	////dim3 grid((CONV_W_NUM - 1) / block.x + 1, (CONV_SIZE - 1) / block.y + 1, (CONV_SIZE - 1) / block.z + 1);
-	//dim3 grid_input(1,24,24);
+	load_data();
+	clock_t t = clock();
+	cudaMemcpyToSymbol(_alpha, &alpha, sizeof(float));
+	cudaMemcpyToSymbol(_minibatch, &minibatch, sizeof(int));
+	cudaMemcpyToSymbol(_epochs, &epochs, sizeof(int));
+	init_data_gpu();
+	init_params();
+	cudaMemcpyToSymbol(_fc1_b, fc1_b, FC1_SIZE* sizeof(float));
+	cudaMemcpyToSymbol(_fc1_w, fc1_w, FC1_SIZE*COL*ROW* sizeof(float));
+	cudaMemcpyToSymbol(_fc2_b, fc2_b, FC2_SIZE* sizeof(float));
+	cudaMemcpyToSymbol(_fc2_w, fc2_w, FC1_SIZE * FC2_SIZE * sizeof(float));
+	for (int i = 1;i <= epochs;i++)
+	{
+		/*int value1 = 0;
+		float value2=0;
+		cudaMemcpyToSymbol(_correct_cnt, &value1, sizeof(int));
+		cudaMemcpyToSymbol(_avg_error, &value2, sizeof(float));
+		cudaDeviceSynchronize();
 
-	//for (int i = 1;i <= epochs;i++)
-	//{
-	//	int value1 = 1;
-	//	float value2 = 1;
-	//	cudaMemcpyToSymbol(_correct_cnt, &value1, sizeof(int));
-	//	cudaMemcpyToSymbol(_avg_error, &value2, sizeof(float));
-	//	cudaDeviceSynchronize();
-	//	//for (int j = 1;j < TRAIN_NUM; j++)
-	//	//{
-	//	//	set_input(j, train_image);
-	//	//	//input_fc1();
-	//	//	if (j && j % 100 == 0)
-	//	//	{
-	//	//		printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), j, ((float)correct_cnt / j) * 100, (avg_error / j) * 100, i);
-	//	//	}
-	//	//}
+		for(int j=0;j<TRAIN_NUM;j++)
+		{
+		    set_input_gpu_train(j);
+		    _1input_fc1<<<FC1_SIZE, dim3(ROW,COL)>>>();
+		    _1fc1_fc2<<<FC2_SIZE,1>>>();
+		    _set_answer_train<<<32,1>>>(j);
+		    _check_answer_get_error<<<1,1>>>();
 
-	//	for (int j = 0;j < TRAIN_NUM/BATCH_SIZE; j++)
-	//	{
-	//		//_set_input_train << <1, dim3(ROW, COL) >> > (j);
-	//		set_input(j, train_image);
-	//		input_fc1();
-	//		_input_fc1 << <dim3(BATCH_SIZE, FC1_SIZE), dim3(ROW, COL) >> > (j);
-	//		//float testOut[BATCH_SIZE][FC1_SIZE];
-	//		float testOut[FC1_SIZE][ROW][COL];
-	//		//cudaMemcpyFromSymbol(&testOut, _fc1_z, BATCH_SIZE*FC1_SIZE * sizeof(float));
-	//		cudaMemcpyFromSymbol(&testOut, _data1, FC1_SIZE*ROW*COL * sizeof(float));
-	//		for (int k = 0;k < FC1_SIZE;k++) {
-	//			for (int m = 0;m < ROW;m++) {
-	//				for (int l = 0;l < COL;l++) {
-	//					if (data1[k][m][l] != testOut[k][m][l])
-	//						cout << "No equals!!!";
-	//				}
-	//			}
-	//		}
+		    _1update_fc2_b<<<FC2_SIZE, 1 >>>();
+			dim3 block(32, 32);
+			dim3 grid((FC2_SIZE - 1) / block.x + 1, (FC1_SIZE - 1) / block.x + 1);
+			_1update_fc2_w << <block, grid >> > ();
+			dim3 block1(32);
+			dim3 grid1((FC1_SIZE - 1) / block1.x + 1);
+			_1update_fc1_b << <block1, grid1 >> > ();
+			dim3 block2(8, 8, 8);
+			dim3 grid2((FC1_SIZE - 1) / block2.x + 1, (ROW- 1) / block2.y + 1, (COL - 1) / block2.z + 1);
+			_1update_fc1_w << <block2, grid2 >> > ();
+		    if((j+1)%minibatch==0)
+		        assign_grads_gpu();
+		    if(j&&j%100==0)
+		    {
+		        cudaMemcpyFromSymbol(&correct_cnt,_correct_cnt,sizeof(int));
+		        cudaMemcpyFromSymbol(&avg_error,_avg_error,sizeof(float));
+		        printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \r",floor(((float)(clock()-t))/CLOCKS_PER_SEC),j,((float)correct_cnt/j)*100,(avg_error/j)*100,i);
+		    }
+		}
 
-	//	/*	_fc1_fc2 << <dim3(BATCH_SIZE, FC2_SIZE), FC1_SIZE>> > ();
-	//		_set_answer_train << < BATCH_SIZE, FC2_SIZE >> > (j);
-	//		_check_answer_get_error << <1, BATCH_SIZE >> > ();
-	//		*/
-	//		/*_update_fc2_b << <BATCH_SIZE, FC2_SIZE >> > ();
-	//		_update_fc2_w << <10, FC1_SIZE >> > ();
-	//		_update_weights_HO << <FC2_SIZE, FC1_SIZE >> > ();
-	//		_update_weights_IH << <FC1_SIZE, dim3(ROW,COL)>> > ();
-	//		_update_fc1_b << <1, FC1_SIZE >> > ();
-	//		_update_fc1_w << <FC1_SIZE, dim3(1, 28, 28) >> > ();
-	//		if ((j + 1) % minibatch == 0)
-	//			assign_grads_gpu();*/
-	//		//_calcDelta << <BATCH_SIZE, FC1_SIZE >> > ();
+		cudaMemcpyFromSymbol(&correct_cnt,_correct_cnt,sizeof(int));
+		cudaMemcpyFromSymbol(&avg_error,_avg_error,sizeof(float));
+		printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \n",floor(((float)(clock()-t))/CLOCKS_PER_SEC),TRAIN_NUM,((float)correct_cnt/TRAIN_NUM)*100,(avg_error/TRAIN_NUM)*100,i);
 
-	//		if (j && j % 100 == 0)
-	//		{
-	//			cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
-	//			cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
-	//			printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), j*BATCH_SIZE, ((float)correct_cnt / (j*BATCH_SIZE)) * 100, (avg_error / j) * 100, i);
-	//		}
-	//	}
+		correct_cnt=0;
+		avg_error=0;
+		cudaMemcpyToSymbol(_correct_cnt,&correct_cnt,sizeof(int));
+		cudaMemcpyToSymbol(_avg_error,&avg_error,sizeof(float));
+
+		for(int j=0;j<TEST_NUM;j++)
+		{
+			set_input_gpu_test(j);
+			_1input_fc1 << <FC1_SIZE, dim3(ROW, COL) >> > ();
+			_1fc1_fc2 << <FC2_SIZE, 1 >> > ();
+			_set_answer_train << <32, 1 >> > (j);
+			_check_answer_get_error << <1, 1 >> > ();
+		  
+		    if(j&&j%100==0)
+		    {
+		        cudaMemcpyFromSymbol(&correct_cnt,_correct_cnt,sizeof(int));
+		        cudaMemcpyFromSymbol(&avg_error,_avg_error,sizeof(float));
+		        printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \r",floor(((float)(clock()-t))/CLOCKS_PER_SEC),j,((float)correct_cnt/j)*100,(avg_error/j)*100);
+		    }
+		}
+		cudaMemcpyFromSymbol(&correct_cnt,_correct_cnt,sizeof(int));
+		cudaMemcpyFromSymbol(&avg_error,_avg_error,sizeof(float));
+		printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \n",floor(((float)(clock()-t))/CLOCKS_PER_SEC),TEST_NUM,((float)correct_cnt/TEST_NUM)*100,(avg_error/TEST_NUM)*100);
+		      
+*/
+
+
+
+
+		t = clock();
+		int value1 = 0;
+		int value2 = 0;
+		cudaMemcpyToSymbol(_correct_cnt, &value1, sizeof(int));
+		cudaMemcpyToSymbol(_avg_error, &value2, sizeof(float));
+		cudaDeviceSynchronize();
+		t = clock();
+		cout << "--------------------------GPU-----------------------------" << endl;
+		/*for (int j = 0;j < TRAIN_NUM / BATCH_SIZE; j++)
+		{*/
+//			_input_fc1 << <dim3(BATCH_SIZE, FC1_SIZE), dim3(32, 32) >> > (j);
+//			cudaDeviceSynchronize();
+//			_fc1_fc2 << <dim3(BATCH_SIZE, FC2_SIZE), 1024 >> > ();
+//			cudaDeviceSynchronize();
+//			_set_answer_train << < BATCH_SIZE, FC2_SIZE >> > (j);
+//			cudaDeviceSynchronize();
+//			_check_answer_get_error << <1, 32 >> > ();
+//			cudaDeviceSynchronize();
+//			_calcDeltaAndUpdateWeights << <BATCH_SIZE, max(FC2_SIZE, FC1_SIZE) >> > ();
+//			cudaDeviceSynchronize();
+////
+//////---------------------------------TESTING---------------------------------------------------
+////
+////			set_input(j, train_image);
+////			input_fc1();
+////			fc1_fc2();
+////			set_answer(j, train_label);
+////			check_answer(correct_cnt);
+////			get_error(avg_error);
+////
+////			update_fc2_b();
+////			update_fc2_w();
+////			update_fc1_b();
+////			update_fc1_w(j);
+////
+////			cout << "fc2_delta" << endl;
+////			for (int j = 0;j < ROW;j++) {
+////				for (int k = 0;k < COL;k++) {
+////					cout << input[j][k] << " ";
+////				}
+////				cout << endl;
+////			}
+////			cout << endl;
+////			set_input(j+1, train_image);
+////			input_fc1();
+////			fc1_fc2();
+////			set_answer(j+1, train_label);
+////			check_answer(correct_cnt);
+////			get_error(avg_error);
+////
+////			update_fc2_b();
+////			update_fc2_w();
+////			update_fc1_b();
+////			update_fc1_w(j+1);
+////			assign_grads();
+////cout << "fc2_delta" << endl;
+////for (int j = 0;j < ROW;j++) {
+////	for (int k = 0;k < COL;k++) {
+////		cout << input[j][k] << " ";
+////	}
+////	cout << endl;
+////}
+////cout << endl;
+////
+////float testOut1[BATCH_SIZE][ROW][COL];
+////cudaMemcpyFromSymbol(&testOut1, _input, ROW*COL*BATCH_SIZE * sizeof(float));
+////cout << "fc2_del" << endl;
+////for (int i = 0;i < BATCH_SIZE;i++) {
+////	for (int j = 0;j < ROW;j++) {
+////		for (int k = 0;k < COL;k++) {
+////			cout << testOut1[i][j][k] << " ";
+////		}
+////		cout << endl;
+////	}
+////	cout << endl;
+////	cout << endl;
+////}
+////int g=0;
+//
+////	/*cout << "fc2_b" << endl;
+////	for (int i = 0;i < FC2_SIZE;i++) {
+////		cout << fc2_b[i] << " ";
+////	}
+////	cout << endl;
+////	cout << "fc2_w" << endl;
+////	for (int i = 0;i < FC2_SIZE;i++) {
+////		for (int j = 0;j < FC1_SIZE;j++) {
+////			cout << fc2_w[i][j] << " ";
+////		}
+////		cout << endl;
+////	}
+////	cout << endl;*/
+////	cout << "fc1_b" << endl;
+////	for (int i = 0;i < FC1_SIZE;i++) {
+////		cout << fc1_b[i] << " ";
+////	}
+////	cout << endl;
+////	//cout << "fc1_w" << endl;
+////	//for (int r = 0;r < FC1_SIZE;r++) {
+////	//	for (int i = 0;i < ROW;i++) {
+////	//		for (int j = 0;j < COL;j++) {
+////	//			cout << fc1_w[r][i][j] << " ";
+////	//		}
+////	//		cout << endl;
+////	//	}
+////	//	cout << endl;
+////	//}
+////
+////
+////			float testOut[FC2_SIZE];
+////cudaMemcpyFromSymbol(&testOut, _fc2_b, FC2_SIZE* sizeof(float));
+////cout << "First Image" << endl;
+//////cout << "fc2_db" << endl;
+//////for (int i = 0;i < FC2_SIZE;i++) {
+//////		cout << testOut[i] << " ";
+//////}
+//////cout << endl;
+//////float testOut1[FC2_SIZE][FC1_SIZE];
+//////cudaMemcpyFromSymbol(&testOut1, _fc2_w, FC2_SIZE*FC1_SIZE * sizeof(float));
+//////cout << "fc2_dw" << endl;
+//////for (int i = 0;i < FC2_SIZE;i++) {
+//////	for (int j = 0;j < FC1_SIZE;j++) {
+//////		cout << testOut1[i][j] << " ";
+//////	}
+//////	cout << endl;
+//////}
+////float testOut2[FC1_SIZE];
+////cudaMemcpyFromSymbol(&testOut2, _fc1_b, FC1_SIZE * sizeof(float));
+////cout << "fc1_db" << endl;
+////for (int i = 0;i < FC1_SIZE;i++) {
+////	cout << testOut2[i] << " ";
+////}
+////cout << endl;
+////float testOut3[FC1_SIZE][ROW][COL];
+////cudaMemcpyFromSymbol(&testOut3, _fc1_w, FC1_SIZE*ROW*COL* sizeof(float));
+//////cout << "fc1_dw" << endl;
+//////for (int r = 0;r < FC1_SIZE;r++) {
+//////	for (int i = 0;i < ROW;i++) {
+//////		for (int j = 0;j < COL;j++) {
+//////			cout << testOut3[r][i][j] << " ";
+//////		}
+//////		cout << endl;
+//////	}
+//////	cout << endl;
+//////}
+////cout << "CHECK WEIGHTS" << endl;
+////for (int r = 0;r < FC1_SIZE;r++) {
+////	for (int i = 0;i < ROW;i++) {
+////		for (int j = 0;j < COL;j++) {
+////			if (testOut3[r][i][j] != fc1_w[r][i][j])
+////				cout << "NO EQUALS" << r << " " << i << " " << j << endl;
+////		}
+////	}
+////}
+////
+////
+////
+////
+////
+////
+//
+//
+////-------------------------------------END TESTING-------------------------------------------
+//
+//
+//			if (j && j % BATCH_SIZE == 0)
+//			{
+//				cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
+//				cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
+//				printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), j * BATCH_SIZE, ((float)correct_cnt / (j * BATCH_SIZE)) * 100, (avg_error / j) * 100, i);
+//			}
+//		}
+//		cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
+//		cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
+//		printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \n", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), TRAIN_NUM, ((float)correct_cnt / TRAIN_NUM) * 100, (avg_error / TRAIN_NUM) * 100, i);
+//		cudaDeviceSynchronize();
+		correct_cnt = 0;
+		avg_error = 0;
+		cudaMemcpyToSymbol(_correct_cnt, &correct_cnt, sizeof(int));
+		cudaMemcpyToSymbol(_avg_error, &avg_error, sizeof(float));
+		cout << endl;
+		for (int j = 0;j < TEST_NUM / BATCH_SIZE;j++)
+		{
+			_input_fc1_test << <dim3(BATCH_SIZE, FC1_SIZE), dim3(32, 32) >> > (j);
+			cudaDeviceSynchronize();
+			_fc1_fc2 << <dim3(BATCH_SIZE, FC2_SIZE), 1024 >> > ();
+			cudaDeviceSynchronize();
+			_set_answer_test << < BATCH_SIZE, FC2_SIZE >> > (j);
+			cudaDeviceSynchronize();
+			_check_answer_get_error << <1, 32 >> > ();
+			cudaDeviceSynchronize();
+
+			if (j && j % BATCH_SIZE == 0)
+			{
+				cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
+				cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
+				cout << correct_cnt << endl;
+				printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), j * BATCH_SIZE, ((float)correct_cnt / (j * BATCH_SIZE)) * 100, (avg_error / j * BATCH_SIZE) * 100);
+			}
+		}
+		cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
+		cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
+		printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \n", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), TEST_NUM, ((float)correct_cnt / TEST_NUM) * 100, (avg_error / TEST_NUM) * 100);
+
+		t = clock();
+		cout << "--------------------------CPU-----------------------------" << endl;
+		for (int j = 0;j < TRAIN_NUM; j++)
+		{
+			set_input(j, train_image);
+			input_fc1();
+			fc1_fc2();
+			set_answer(j, train_label);
+			check_answer(correct_cnt);
+			get_error(avg_error);
+
+			update_fc2_b();
+			update_fc2_w();
+			update_fc1_b();
+			update_fc1_w(j);
+			if ((j + 1) % minibatch == 0)
+				assign_grads();
+			if (j && j % 100 == 0)
+			{
+				printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), j, ((float)correct_cnt / j) * 100, (avg_error / j) * 100, i);
+			}
+		}
+		printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), TRAIN_NUM, ((float)correct_cnt / TRAIN_NUM) * 100, (avg_error / TRAIN_NUM) * 100, i);
+		cout << endl;
+		correct_cnt = 0;
+		avg_error=0;
+		for(int j=0;j<TEST_NUM;j++)
+		{
+			set_input(j,test_image);
+			input_fc1();
+			fc1_fc2();
+			set_answer(j,test_label);
+			check_answer(correct_cnt);
+			get_error(avg_error);
+			  
+			if(j&&j%100==0)
+			    printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \r",floor(((float)(clock()-t))/CLOCKS_PER_SEC),j,((float)correct_cnt/j)*100,(avg_error/j)*100);
+		}
+		printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \n",floor(((float)(clock()-t))/CLOCKS_PER_SEC),TEST_NUM,((float)correct_cnt/TEST_NUM)*100,(avg_error/TEST_NUM)*100);
+		
+
+		if ((float)correct_cnt / TEST_NUM * 100 > max_acc)
+		{
+			max_acc = (float)correct_cnt / TEST_NUM * 100;
+			//export_params();
+			printf("The new model has been exported.Accuracy has reached to %0.5f%%\n\n", max_acc);
+		}
+		else
+		{
+			alpha = alpha - (alpha / 3);
+			cudaMemcpyToSymbol(_alpha, &alpha, sizeof(float));
+			printf("Learning rate has been reduced to %f\n\n", alpha);
+		}
+	}
+	
+
+	//cout << matrixMult(train_image[0], fc1_w, 0) << endl;
+	//cout << matrixMult(train_image[0], fc1_w, 1) << endl;
+	//cout << matrixMult(train_image[1], fc1_w, 0) << endl;
+	//cout << matrixMult(train_image[1], fc1_w, 1) << endl;
+
 	//
 
-	//	cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
-	//	cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
-	//	printf("Training  Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% Epoch : %d \n", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), TRAIN_NUM, ((float)correct_cnt / TRAIN_NUM) * 100, (avg_error / TRAIN_NUM) * 100, i);
 
-	//	correct_cnt = 0;
-	//	avg_error = 0;
-	//	cudaMemcpyToSymbol(_correct_cnt, &correct_cnt, sizeof(int));
-	//	cudaMemcpyToSymbol(_avg_error, &avg_error, sizeof(float));
+	///*float train_image[ROW][COL] = {
+	//{ 3, 1, 2, 4, 3, 3 },
+	//{ 2, 4, 3, 1, 1, 4 },
+	//{ 1, 5, 2, 3, 2, 5 },
+	//{ 2, 3, 4, 1, 4, 1 },
+	//{ 1, 4, 2, 1, 2, 3 },
+	//{ 2, 3, 6, 5, 4, 1 }, };
+	//float conv_w[CONV_W_NUM][CONV_W_SIZE][CONV_W_SIZE] = { {
+	//{1, 2, 3},
+	//{4, 3, 1},
+	//{1, 2, 4}},
+	//{{4, 2, 5},
+	//{2, 3, 1},
+	//{1, 2, 3}} };*/
 
-	//	//for (int j = 0;j < TEST_NUM;j++)
-	//	//{
-	//	//	_set_input_test << <1, dim3(28, 28) >> > (j);
-	//	//	_input_fc1 << <400, dim3(28, 28) >> > ();
-	//	//	_fc1_fc2 << <10, 400 >> > ();
-	//	//	set_answer_gpu_test(j);
-	//	//	check_answer_get_error_gpu();
+	////float conv_z[CONV_W_NUM][CONV_SIZE][CONV_SIZE];
+	//float conv_z[2][2][2];
+	//int train_label[2] = { 2, 0 };
 
-	//	//	if (j && j % 100 == 0)
-	//	//	{
-	//	//		cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
-	//	//		cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
-	//	//		printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \r", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), j, ((float)correct_cnt / j) * 100, (avg_error / j) * 100);
-	//	//	}
-	//	//}
-	//	//cudaMemcpyFromSymbol(&correct_cnt, _correct_cnt, sizeof(int));
-	//	//cudaMemcpyFromSymbol(&avg_error, _avg_error, sizeof(float));
-	//	//printf("Testing   Time spent : %.0fs Image count : %d Accuracy : %0.4f%% Error : %0.4f%% \n", floor(((float)(clock() - t)) / CLOCKS_PER_SEC), TEST_NUM, ((float)correct_cnt / TEST_NUM) * 100, (avg_error / TEST_NUM) * 100);
+	//cudaMemcpyToSymbol(_train_image, train_image, TRAIN_NUM * ROW * COL * sizeof(float));
+	//cudaMemcpyToSymbol(_train_label, train_label, TRAIN_NUM * sizeof(int));
+	//cudaMemcpyToSymbol(_fc1_w, fc1_w, FC1_SIZE*ROW*COL*sizeof(float));
+	//cudaMemcpyToSymbol(_fc2_w, fc2_w, FC2_SIZE*FC1_SIZE*sizeof(float));
+	////cudaMemcpyToSymbol(_conv_w, conv_w, CONV_W_NUM * CONV_W_SIZE * CONV_W_SIZE * sizeof(float));
+	////cudaMemcpy(_train_label, train_label, 2 * sizeof(float), cudaMemcpyHostToDevice);
+	////cudaMemcpy(_train_image, train_image, ROW * COL * sizeof(float), cudaMemcpyHostToDevice);
+	////cudaMemcpy(_conv_w, conv_w, CONV_W_NUM*CONV_W_SIZE*CONV_W_SIZE*sizeof(float), cudaMemcpyHostToDevice);
+	//dim3 grid2(ROW, COL);
+	//
+	////___________________________________________CPU________________________________________________
+	//cout << "First Image" << endl;
+	//set_input(0, train_image);
+	//input_fc1();
+	//fc1_fc2();
+	//set_answer(0, train_label);
+	//check_answer(correct_cnt);
+	//get_error(avg_error);
+	//update_fc2_b();
+	//update_fc2_w();
+	//update_fc1_b();
+	//update_fc1_w(0);
 
-	//	//if ((float)correct_cnt / TEST_NUM * 100 > max_acc)
-	//	//{
-	//	//	max_acc = (float)correct_cnt / TEST_NUM * 100;
-	//	//	//export_params();
-	//	//	printf("The new model has been exported.Accuracy has reached to %0.5f%%\n\n", max_acc);
-	//	//}
-	//	//else
-	//	//{
-	//	//	alpha = alpha - (alpha / 3);
-	//	//	cudaMemcpyToSymbol(_alpha, &alpha, sizeof(float));
-	//	//	printf("Learning rate has been reduced to %f\n\n", alpha);
-	//	//}
+	///*for (int i = 0;i < FC2_SIZE;i++) {
+	//	cout << fc2_delta[i] << " ";
 	//}
-	
-
-	
-
-	cout << matrixMult(train_image[0], fc1_w, 0) << endl;
-	cout << matrixMult(train_image[0], fc1_w, 1) << endl;
-	cout << matrixMult(train_image[1], fc1_w, 0) << endl;
-	cout << matrixMult(train_image[1], fc1_w, 1) << endl;
-
-	
-
-
-	/*float train_image[ROW][COL] = {
-	{ 3, 1, 2, 4, 3, 3 },
-	{ 2, 4, 3, 1, 1, 4 },
-	{ 1, 5, 2, 3, 2, 5 },
-	{ 2, 3, 4, 1, 4, 1 },
-	{ 1, 4, 2, 1, 2, 3 },
-	{ 2, 3, 6, 5, 4, 1 }, };
-	float conv_w[CONV_W_NUM][CONV_W_SIZE][CONV_W_SIZE] = { {
-	{1, 2, 3},
-	{4, 3, 1},
-	{1, 2, 4}},
-	{{4, 2, 5},
-	{2, 3, 1},
-	{1, 2, 3}} };*/
-
-	//float conv_z[CONV_W_NUM][CONV_SIZE][CONV_SIZE];
-	float conv_z[2][2][2];
-	int train_label[2] = { 2, 0 };
-
-	cudaMemcpyToSymbol(_train_image, train_image, TRAIN_NUM * ROW * COL * sizeof(float));
-	cudaMemcpyToSymbol(_train_label, train_label, TRAIN_NUM * sizeof(int));
-	cudaMemcpyToSymbol(_fc1_w, fc1_w, FC1_SIZE*ROW*COL*sizeof(float));
-	cudaMemcpyToSymbol(_fc2_w, fc2_w, FC2_SIZE*FC1_SIZE*sizeof(float));
-	//cudaMemcpyToSymbol(_conv_w, conv_w, CONV_W_NUM * CONV_W_SIZE * CONV_W_SIZE * sizeof(float));
-	//cudaMemcpy(_train_label, train_label, 2 * sizeof(float), cudaMemcpyHostToDevice);
-	//cudaMemcpy(_train_image, train_image, ROW * COL * sizeof(float), cudaMemcpyHostToDevice);
-	//cudaMemcpy(_conv_w, conv_w, CONV_W_NUM*CONV_W_SIZE*CONV_W_SIZE*sizeof(float), cudaMemcpyHostToDevice);
-	dim3 grid2(ROW, COL);
-	
-	//___________________________________________CPU________________________________________________
-	cout << "First Image" << endl;
-	set_input(0, train_image);
-	input_fc1();
-	fc1_fc2();
-	set_answer(0, train_label);
-	check_answer(correct_cnt);
-	get_error(avg_error);
-	update_fc2_b();
-	update_fc2_w();
-	update_fc1_b();
-	update_fc1_w(0);
-	/*for (int i = 0;i < FC2_SIZE;i++) {
-		cout << fc2_delta[i] << " ";
-	}
-	cout << endl;
-	for (int i = 0;i < FC1_SIZE;i++) {
-		cout << fc1_delta[i] << " ";
-	}*/
-	cout << endl;
-	cout << "Second Image" << endl;
-	set_input(1, train_image);
-	input_fc1();
-	fc1_fc2();
-	set_answer(1, train_label);
-	check_answer(correct_cnt);
-	get_error(avg_error);
-	update_fc2_b();
-	update_fc2_w();
-	update_fc1_b();
-	update_fc1_w(1);
-	cout << "fc2_db" << endl;
-	for (int i = 0;i < FC2_SIZE;i++) {
-		cout << fc2_db[i] << " ";
-	}
-	cout << endl;
-	cout << "fc2_dw" << endl;
-	for (int i = 0;i < FC2_SIZE;i++) {
-		for (int j = 0;j < FC1_SIZE;j++) {
-			cout << fc2_dw[i][j] << " ";
-		}
-		cout << endl;
-	}
-	cout << endl;
-	cout << "fc1_db" << endl;
-	for (int i = 0;i < FC1_SIZE;i++) {
-		cout << fc1_db[i] << " ";
-	}
-	cout << endl;
-	cout << "fc1_dw" << endl;
-	for (int r = 0;r < FC1_SIZE;r++) {
-		for (int i = 0;i < ROW;i++) {
-			for (int j = 0;j < COL;j++) {
-				cout << fc1_dw[r][i][j] << " ";
-			}
-			cout << endl;
-		}
-		cout << endl;
-	}
-	cout << "___________________________________________GPU________________________________________________" << endl;
-	//_input_conv << <1, grid2>> > ((float (*)[4])_train_image, (float (*)[3][3])_conv_w, (float (*)[2][2])_conv_z);
-	_input_fc1 << <dim3(2, FC1_SIZE), grid2 >> > (0);
-	_fc1_fc2 << <dim3(BATCH_SIZE, FC2_SIZE), FC1_SIZE>> > ();
-	_set_answer_train << < BATCH_SIZE, FC2_SIZE >> > (0);
-	_check_answer_get_error <<<1, BATCH_SIZE >>> ();
-	_calcDelta << <BATCH_SIZE, FC2_SIZE>> > ();
-	//float testOut[BATCH_SIZE][FC2_SIZE];
-	//_conv_pool << <1, grid2 >> > ();
-	//cudaMemcpyFromSymbol(&conv_z, _pool, CONV_W_NUM * CONV_SIZE * CONV_SIZE * sizeof(float));
-	//cudaMemcpyFromSymbol(&conv_z, _pool, 8 * sizeof(float));
-	//cudaMemcpyFromSymbol(&testOut, _fc2_del, BATCH_SIZE*FC2_SIZE * sizeof(float));
-	float testOut[FC2_SIZE];
-	cudaMemcpyFromSymbol(&testOut, _fc2_db, FC2_SIZE* sizeof(float));
-	cout << "First Image" << endl;
-	cout << "fc2_db" << endl;
-	for (int i = 0;i < FC2_SIZE;i++) {
-			cout << testOut[i] << " ";
-	}
-	cout << endl;
-	float testOut1[FC2_SIZE][FC1_SIZE];
-	cudaMemcpyFromSymbol(&testOut1, _fc2_dw, FC2_SIZE*FC1_SIZE * sizeof(float));
-	cout << "fc2_dw" << endl;
-	for (int i = 0;i < FC2_SIZE;i++) {
-		for (int j = 0;j < FC1_SIZE;j++) {
-			cout << testOut1[i][j] << " ";
-		}
-		cout << endl;
-	}
-	float testOut2[FC1_SIZE];
-	cudaMemcpyFromSymbol(&testOut2, _fc1_db, FC1_SIZE * sizeof(float));
-	cout << "fc1_db" << endl;
-	for (int i = 0;i < FC1_SIZE;i++) {
-		cout << testOut2[i] << " ";
-	}
-	cout << endl;
-	float testOut3[FC1_SIZE][ROW][COL];
-	cudaMemcpyFromSymbol(&testOut3, _fc1_dw, FC1_SIZE*ROW*COL* sizeof(float));
-	cout << "fc1_dw" << endl;
-	for (int r = 0;r < FC1_SIZE;r++) {
-		for (int i = 0;i < ROW;i++) {
-			for (int j = 0;j < COL;j++) {
-				cout << testOut3[r][i][j] << " ";
-			}
-			cout << endl;
-		}
-		cout << endl;
-	}
-	/*cout << "Second Image" << endl;
-	for (int i = 0;i < FC1_SIZE;i++) {
-		cout << testOut[1][i] << endl;
-	}*/
-	/*for (int i = 0;i < 2;i++) {
-		for (int j = 0;j <2;j++) {
-			cout << conv_z[0][i][j] << " ";
-		}
-		cout << endl;
-	}
-	for (int i = 0;i < 2;i++) {
-		for (int j = 0;j < 2;j++) {
-			cout << conv_z[1][i][j] << " ";
-		}
-		cout << endl;
-	}*/
+	//cout << endl;
+	//for (int i = 0;i < FC1_SIZE;i++) {
+	//	cout << fc1_delta[i] << " ";
+	//}*/
+	//cout << endl;
+	//cout << "Second Image" << endl;
+	//set_input(1, train_image);
+	//input_fc1();
+	//fc1_fc2();
+	//set_answer(1, train_label);
+	//check_answer(correct_cnt);
+	//get_error(avg_error);
+	//update_fc2_b();
+	//update_fc2_w();
+	//update_fc1_b();
+	//update_fc1_w(1);
+	//
+	//cout << "fc2_db" << endl;
+	//for (int i = 0;i < FC2_SIZE;i++) {
+	//	cout << fc2_db[i] << " ";
+	//}
+	//cout << endl;
+	//cout << "fc2_dw" << endl;
+	//for (int i = 0;i < FC2_SIZE;i++) {
+	//	for (int j = 0;j < FC1_SIZE;j++) {
+	//		cout << fc2_dw[i][j] << " ";
+	//	}
+	//	cout << endl;
+	//}
+	//cout << endl;
+	//cout << "fc1_db" << endl;
+	//for (int i = 0;i < FC1_SIZE;i++) {
+	//	cout << fc1_db[i] << " ";
+	//}
+	//cout << endl;
+	//cout << "fc1_dw" << endl;
+	//for (int r = 0;r < FC1_SIZE;r++) {
+	//	for (int i = 0;i < ROW;i++) {
+	//		for (int j = 0;j < COL;j++) {
+	//			cout << fc1_dw[r][i][j] << " ";
+	//		}
+	//		cout << endl;
+	//	}
+	//	cout << endl;
+	//}
+	//cout << "----------------------------------------WEIGHTS" << endl;
+	//assign_grads();
+	//cout << "fc2_db" << endl;
+	//for (int i = 0;i < FC2_SIZE;i++) {
+	//	cout << fc2_b[i] << " ";
+	//}
+	//cout << endl;
+	//cout << "fc2_dw" << endl;
+	//for (int i = 0;i < FC2_SIZE;i++) {
+	//	for (int j = 0;j < FC1_SIZE;j++) {
+	//		cout << fc2_w[i][j] << " ";
+	//	}
+	//	cout << endl;
+	//}
+	//cout << endl;
+	//cout << "fc1_db" << endl;
+	//for (int i = 0;i < FC1_SIZE;i++) {
+	//	cout << fc1_b[i] << " ";
+	//}
+	//cout << endl;
+	//cout << "fc1_dw" << endl;
+	//for (int r = 0;r < FC1_SIZE;r++) {
+	//	for (int i = 0;i < ROW;i++) {
+	//		for (int j = 0;j < COL;j++) {
+	//			cout << fc1_w[r][i][j] << " ";
+	//		}
+	//		cout << endl;
+	//	}
+	//	cout << endl;
+	//}
+	//cout << "___________________________________________GPU________________________________________________" << endl;
+	////_input_conv << <1, grid2>> > ((float (*)[4])_train_image, (float (*)[3][3])_conv_w, (float (*)[2][2])_conv_z);
+	//_input_fc1 << <dim3(2, FC1_SIZE), grid2 >> > (0);
+	//_fc1_fc2 << <dim3(BATCH_SIZE, FC2_SIZE), FC1_SIZE>> > ();
+	//_set_answer_train << < BATCH_SIZE, FC2_SIZE >> > (0);
+	//_check_answer_get_error <<<1, BATCH_SIZE >>> ();
+	//_calcDeltaAndUpdateWeights << <BATCH_SIZE, max(FC2_SIZE,FC1_SIZE)>> > ();
+	////float testOut[BATCH_SIZE][FC2_SIZE];
+	////_conv_pool << <1, grid2 >> > ();
+	////cudaMemcpyFromSymbol(&conv_z, _pool, CONV_W_NUM * CONV_SIZE * CONV_SIZE * sizeof(float));
+	////cudaMemcpyFromSymbol(&conv_z, _pool, 8 * sizeof(float));
+	////cudaMemcpyFromSymbol(&testOut, _fc2_del, BATCH_SIZE*FC2_SIZE * sizeof(float));
+	//float testOut[FC2_SIZE];
+	//cudaMemcpyFromSymbol(&testOut, _fc2_b, FC2_SIZE* sizeof(float));
+	//cout << "First Image" << endl;
+	//cout << "fc2_db" << endl;
+	//for (int i = 0;i < FC2_SIZE;i++) {
+	//		cout << testOut[i] << " ";
+	//}
+	//cout << endl;
+	//float testOut1[FC2_SIZE][FC1_SIZE];
+	//cudaMemcpyFromSymbol(&testOut1, _fc2_w, FC2_SIZE*FC1_SIZE * sizeof(float));
+	//cout << "fc2_dw" << endl;
+	//for (int i = 0;i < FC2_SIZE;i++) {
+	//	for (int j = 0;j < FC1_SIZE;j++) {
+	//		cout << testOut1[i][j] << " ";
+	//	}
+	//	cout << endl;
+	//}
+	//float testOut2[FC1_SIZE];
+	//cudaMemcpyFromSymbol(&testOut2, _fc1_b, FC1_SIZE * sizeof(float));
+	//cout << "fc1_db" << endl;
+	//for (int i = 0;i < FC1_SIZE;i++) {
+	//	cout << testOut2[i] << " ";
+	//}
+	//cout << endl;
+	//float testOut3[FC1_SIZE][ROW][COL];
+	//cudaMemcpyFromSymbol(&testOut3, _fc1_w, FC1_SIZE*ROW*COL* sizeof(float));
+	//cout << "fc1_dw" << endl;
+	//for (int r = 0;r < FC1_SIZE;r++) {
+	//	for (int i = 0;i < ROW;i++) {
+	//		for (int j = 0;j < COL;j++) {
+	//			cout << testOut3[r][i][j] << " ";
+	//		}
+	//		cout << endl;
+	//	}
+	//	cout << endl;
+	//}
+	//cout << "CHECK WEIGHTS" << endl;
+	//for (int r = 0;r < FC1_SIZE;r++) {
+	//	for (int i = 0;i < ROW;i++) {
+	//		for (int j = 0;j < COL;j++) {
+	//			if (testOut3[r][i][j] != fc1_w[r][i][j])
+	//				cout << "NO EQUALS" << r << " " << i << " " << j << endl;
+	//		}
+	//	}
+	//}
+	///*cout << "Second Image" << endl;
+	//for (int i = 0;i < FC1_SIZE;i++) {
+	//	cout << testOut[1][i] << endl;
+	//}*/
+	///*for (int i = 0;i < 2;i++) {
+	//	for (int j = 0;j <2;j++) {
+	//		cout << conv_z[0][i][j] << " ";
+	//	}
+	//	cout << endl;
+	//}
+	//for (int i = 0;i < 2;i++) {
+	//	for (int j = 0;j < 2;j++) {
+	//		cout << conv_z[1][i][j] << " ";
+	//	}
+	//	cout << endl;
+	//}*/
 	return 0;
 }

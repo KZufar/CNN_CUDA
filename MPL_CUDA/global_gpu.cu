@@ -1,7 +1,7 @@
 //#include "global_gpu.cuh"
 //
 //float fc1_b[FC1_SIZE];
-//float fc1_w[FC1_SIZE][ROW][COL];
+//float fc1_w[FC1_SIZE][ROWOW][COL];
 //float fc2_b[FC2_SIZE];
 //float fc2_w[FC2_SIZE][FC1_SIZE];
 //
@@ -20,12 +20,12 @@
 ////int epochs = 5;
 ////int minibatch = 1;
 //
-//float train_image[TRAIN_NUM][ROW][COL];
-//int train_label[TRAIN_NUM];
-//float test_image[TEST_NUM][ROW][COL];
+//float train_image[TROWAIN_NUM][ROWOW][COL];
+//int train_label[TROWAIN_NUM];
+//float test_image[TEST_NUM][ROWOW][COL];
 //int test_label[TEST_NUM];
 //
-//float input[ROW][COL];
+//float input[ROWOW][COL];
 //float fc1_z[FC1_SIZE];
 //float fc1_a[FC1_SIZE];
 //float fc2_z[FC2_SIZE];
@@ -33,17 +33,17 @@
 //float output[FC2_SIZE];
 //int answer[FC2_SIZE];
 //
-//__device__ float _train_image[TRAIN_NUM][ROW][COL];
-//__device__ int _train_label[TRAIN_NUM];
-//__device__ float _test_image[TEST_NUM][ROW][COL];
+//__device__ float _train_image[TROWAIN_NUM][ROWOW][COL];
+//__device__ int _train_label[TROWAIN_NUM];
+//__device__ float _test_image[TEST_NUM][ROWOW][COL];
 //__device__ int _test_label[TEST_NUM];
 //
 //__device__ float _fc1_b[FC1_SIZE];
-//__device__ float _fc1_w[FC1_SIZE][ROW][COL];
+//__device__ float _fc1_w[FC1_SIZE][ROWOW][COL];
 //__device__ float _fc2_b[FC2_SIZE];
 //__device__ float _fc2_w[FC2_SIZE][FC1_SIZE];
 //
-////__device__ float _input[ROW][COL];
+////__device__ float _input[ROWOW][COL];
 //__device__ float _fc1_z[BATCH_SIZE][FC1_SIZE];
 //__device__ float _fc1_a[BATCH_SIZE][FC1_SIZE];
 //__device__ float _fc2_z[BATCH_SIZE][FC2_SIZE];
@@ -52,7 +52,7 @@
 //__device__ int _answer[BATCH_SIZE][FC2_SIZE];
 //
 //__device__ float _fc1_db[BATCH_SIZE][FC1_SIZE];
-//__device__ float _fc1_dw[BATCH_SIZE][FC1_SIZE][ROW][COL];
+//__device__ float _fc1_dw[BATCH_SIZE][FC1_SIZE][ROWOW][COL];
 //__device__ float _fc2_db[BATCH_SIZE][FC2_SIZE];
 //__device__ float _fc2_dw[BATCH_SIZE][FC2_SIZE][FC1_SIZE];
 //__device__ float _C[BATCH_SIZE][FC2_SIZE];
